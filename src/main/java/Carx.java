@@ -1,10 +1,13 @@
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by maxim on 09-07-15.
@@ -46,7 +49,7 @@ public class Carx {
 
     }
 
-    public void run() {
+    public void test1() {
         response.subscribe(receiver);
         response.subscribe(receiver);
         response.subscribe(receiver);
@@ -73,9 +76,35 @@ public class Carx {
         });
     }
 
-    public static void main(String... args) {
+    public void test2() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        Observable.mergeDelayError(response, Observable.error(new Exception("Exception 1")), response, Observable.error(new Exception("Exception 2")))./*subscribeOn(Schedulers.computation()).observeOn(Schedulers.newThread()).*/subscribe(new Subscriber<Object>() {
+            @Override
+            public void onCompleted() {
+                System.out.println(String.format("receiver.onCompleted()"));
+                unsubscribe();
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                System.out.println(String.format("receiver.onError() -> %s", e.getMessage()));
+                unsubscribe();
+                latch.countDown();
+            }
+
+            @Override
+            public void onNext(Object o) {
+                System.out.println(String.format("receiver.onNext() -> %s", o.toString()));
+            }
+        });
+        latch.await();
+    }
+
+    public static void main(String... args) throws Exception {
         System.out.println("Carx!");
         final Carx carx = new Carx();
-        carx.run();
+//        carx.test1();
+        carx.test2();
     }
 }
