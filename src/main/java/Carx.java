@@ -4,6 +4,7 @@ import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
+import rx.observables.AbstractOnSubscribe;
 import rx.schedulers.Schedulers;
 
 import java.util.Random;
@@ -15,8 +16,9 @@ import java.util.concurrent.CountDownLatch;
 
 public class Carx {
 
-    private Observable<String> response = Observable.defer(new Func0<Observable<String>>() {
+    private final Observable<String> response = Observable.defer(new Func0<Observable<String>>() {
         final Random random = new Random(1000000);
+
         @Override
         public Observable<String> call() {
             final long value = random.nextLong();
@@ -25,6 +27,14 @@ public class Carx {
             return Observable.just(string);
         }
     });
+    private final Observable<String> o = AbstractOnSubscribe.create(new Action1<AbstractOnSubscribe.SubscriptionState<String, Integer>>() {
+        @Override
+        public void call(AbstractOnSubscribe.SubscriptionState<String, Integer> subscriptionState) {
+            System.out.println(String.format("state: %d", subscriptionState.state()));
+            subscriptionState.onNext("Boo!");
+            subscriptionState.onCompleted();
+        }
+    }).toObservable();
     private Subscriber<String> receiver = new Subscriber<String>() {
         @Override
         public void onCompleted() {
@@ -34,7 +44,7 @@ public class Carx {
 
         @Override
         public void onError(Throwable e) {
-            System.out.println(String.format("receiver.onError()"));
+            System.out.println(String.format("receiver.onError() -> %s", e.getMessage()));
             unsubscribe();
         }
 
@@ -50,6 +60,7 @@ public class Carx {
     }
 
     public void test1() {
+        o.subscribe(receiver);
         response.subscribe(receiver);
         response.subscribe(receiver);
         response.subscribe(receiver);
@@ -104,7 +115,7 @@ public class Carx {
     public static void main(String... args) throws Exception {
         System.out.println("Carx!");
         final Carx carx = new Carx();
-//        carx.test1();
+        carx.test1();
         carx.test2();
     }
 }
