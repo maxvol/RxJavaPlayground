@@ -1,13 +1,21 @@
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
+import rx.Subscription;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.observables.AbstractOnSubscribe;
+import rx.plugins.RxJavaErrorHandler;
+import rx.plugins.RxJavaObservableExecutionHook;
+import rx.plugins.RxJavaPlugins;
 import rx.schedulers.Schedulers;
 
-import java.util.Random;
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -114,8 +122,49 @@ public class Carx {
 
     public static void main(String... args) throws Exception {
         System.out.println("Carx!");
+        final RxJavaPlugins plugins = RxJavaPlugins.getInstance();
+        plugins.registerErrorHandler(new RxJavaErrorHandler() {
+            @Override
+            public void handleError(Throwable e) {
+                super.handleError(e);
+            }
+
+            @Override
+            protected String render(Object item) throws InterruptedException {
+                return super.render(item);
+            }
+        });
+        plugins.registerObservableExecutionHook(new RxJavaObservableExecutionHook() {
+
+            @Override
+            public <T> Observable.OnSubscribe<T> onCreate(Observable.OnSubscribe<T> f) {
+                return super.onCreate(f);
+            }
+
+            @Override
+            public <T> Observable.OnSubscribe<T> onSubscribeStart(Observable<? extends T> observableInstance, Observable.OnSubscribe<T> onSubscribe) {
+                return super.onSubscribeStart(observableInstance, onSubscribe);
+            }
+
+            @Override
+            public <T> Subscription onSubscribeReturn(Subscription subscription) {
+                return super.onSubscribeReturn(subscription);
+            }
+
+            @Override
+            public <T> Throwable onSubscribeError(Throwable e) {
+                return super.onSubscribeError(e);
+            }
+
+            @Override
+            public <T, R> Observable.Operator<? extends R, ? super T> onLift(Observable.Operator<? extends R, ? super T> lift) {
+                return super.onLift(lift);
+            }
+        });
         final Carx carx = new Carx();
         carx.test1();
         carx.test2();
+
     }
 }
+
