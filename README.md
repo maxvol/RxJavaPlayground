@@ -1,2 +1,2 @@
-# carx
-my Java RX playground
+# RxJavaPlayground
+my RxJava playground
