@@ -1,5 +1,6 @@
 package maxvol.playground;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -160,6 +161,14 @@ public class Main {
     }
 
     public void testScan() {
+        final List<String> simple = Observable.<String>just("a", "b", "c", "d", "e", "f").scan("_", new Func2<String, String, String>() {
+            @Override
+            public String call(String lhs, String rhs) {
+                return lhs + rhs;
+            }
+        }).toList().toBlocking().single();
+        Log.d(String.format("%s", simple));
+
         final int number = 9;
         // [0,] 1, 1, 2, 3, 5, 8, 13, 21, 34
         final Observable<Integer> fibonacci = Observable.just(0).repeat().scan(new Pair<Integer, Integer>(0, 1), new Func2<Pair<Integer, Integer>, Integer, Pair<Integer, Integer>>() {
@@ -217,6 +226,20 @@ public class Main {
         Log.d(String.format("%s", result));
     }
 
+    public void testFlatMap() {
+        final int number = 5;
+        final List<String> result = Observable.<Integer>range(1, 5).flatMap(new Func1<Integer, Observable<String>>() {
+            @Override
+            public Observable<String> call(Integer integer) {
+                final int count = RandomGen.generateInRange(0, 5);
+                final String[] array = new String[count];
+                Arrays.fill(array, integer.toString());
+                return Observable.from(array);
+            }
+        }).toList().toBlocking().single();
+        Log.d(String.format("%s", result));
+    }
+
     public static void main(String... args) throws Exception {
         System.out.println("RxJava playground!");
         initDebugLoggingForSwallowedExceptions();
@@ -225,6 +248,7 @@ public class Main {
         main.testScan();
         main.testReduce();
         main.testCollect();
+        main.testFlatMap();
     }
 
 }
