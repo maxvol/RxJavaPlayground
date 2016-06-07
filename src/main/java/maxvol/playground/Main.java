@@ -1,5 +1,6 @@
 package maxvol.playground;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -240,6 +241,60 @@ public class Main {
         Log.d(String.format("%s", result));
     }
 
+    public void testCollect2() {
+        class Page {
+            public List<String> lines = new ArrayList<String>();
+            public int total = 10;
+
+            public Page(final int index) {
+                for (int i = 0; i < 5; i++) {
+                    this.lines.add(String.format("%d", index * 10 + i));
+                }
+            }
+        }
+        class PageFactory {
+            public Observable<Page> pageAtIndex(final int index) {
+                return Observable.defer(new Func0<Observable<Page>>() {
+                    @Override
+                    public Observable<Page> call() {
+                        return Observable.just(new Page(index));
+                    }
+                });
+            }
+        }
+        final PageFactory pageFactory = new PageFactory();
+        final Observable<Page> firstPage = pageFactory.pageAtIndex(0);
+        final Observable<Page> otherPages = firstPage.flatMap(new Func1<Page, Observable<Integer>>() {
+            @Override
+            public Observable<Integer> call(Page page) {
+                return Observable.<Integer>range(1, page.total - 1);
+            }
+        }).concatMap(new Func1<Integer, Observable<? extends Page>>() {
+            @Override
+            public Observable<? extends Page> call(Integer integer) {
+                return pageFactory.pageAtIndex(integer);
+            }
+        });
+        final Observable<Page> allPages = firstPage.concatWith(otherPages);
+        final List<String> result = allPages.concatMap(new Func1<Page, Observable<String>>() {
+            @Override
+            public Observable<String> call(Page page) {
+                return Observable.from(page.lines);
+            }
+        }).collect(new Func0<List<String>>() {
+            @Override
+            public List<String> call() {
+                return new ArrayList<String>();
+            }
+        }, new Action2<List<String>, String>() {
+            @Override
+            public void call(List<String> strings, String string) {
+                strings.add(string);
+            }
+        }).toBlocking().single();
+        Log.d(String.format("%s", result));
+    }
+
     public static void main(String... args) throws Exception {
         System.out.println("RxJava playground!");
         initDebugLoggingForSwallowedExceptions();
@@ -249,6 +304,7 @@ public class Main {
         main.testReduce();
         main.testCollect();
         main.testFlatMap();
+        main.testCollect2();
     }
 
 }
